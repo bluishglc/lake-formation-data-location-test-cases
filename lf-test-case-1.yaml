@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create an IAM user for LF testing
+
+Resources:
+
+  Database:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: 'lf-test-db-1'
+        LocationUri: !Sub 's3://${AWS::AccountId}-lf-test-db-1'
+
+  DatabaseBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::AccountId}-lf-test-db-1'
+
+  UserHomeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::AccountId}-lf-test-user-1'
+
+  User:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: 'lf-test-user-1'
+      LoginProfile:
+        Password: 'Admin1234!'
+        PasswordResetRequired: False
+      Policies:
+        - PolicyName: LakeFormationPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['lakeformation:GetDataAccess']
+                Resource: '*'
+        - PolicyName: GluePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['glue:GetTable','glue:GetTables','glue:CreateTable','glue:GetDatabase','glue:GetDatabases']
+                Resource:
+                  - !Sub 'arn:aws:glue:*:${AWS::AccountId}:catalog'
+                  - !Sub 'arn:aws:glue:*:${AWS::AccountId}:database/lf-test-db-1'
+                  - !Sub 'arn:aws:glue:*:${AWS::AccountId}:table/lf-test-db-1/*'
+        - PolicyName: AthenaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - athena:GetWorkGroup
+                  - athena:StartQueryExecution
+                  - athena:GetQueryExecution
+                  - athena:GetQueryResults
+                Resource: !Sub 'arn:aws:athena:*:${AWS::AccountId}:workgroup/lf-test-user-1-workgroup'
+              - Effect: Allow
+                Action: ['athena:ListWorkGroups']
+                Resource: '*'
+        - PolicyName: S3Policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource: !Sub 'arn:aws:s3:::${AWS::AccountId}-lf-test-user-1'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub 'arn:aws:s3:::${AWS::AccountId}-lf-test-user-1/*'
+
+  AthenaWorkgroup:
+    Type: 'AWS::Athena::WorkGroup'
+    Properties:
+      Name: 'lf-test-user-1-workgroup'
+      Description: 'Athena Workgroup'
+      State: ENABLED
+      RecursiveDeleteOption: true
+      WorkGroupConfiguration:
+        ResultConfiguration:
+          OutputLocation: !Sub 's3://${AWS::AccountId}-lf-test-user-1'

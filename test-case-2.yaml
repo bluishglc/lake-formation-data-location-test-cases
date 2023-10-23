@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create an IAM user for LF testing
+Resources:
+  LfTestUser:
+    Type: AWS::IAM::User
+    Properties:
+      LoginProfile:
+        Password: 'Admin1234!'
+        PasswordResetRequired: False
+      Policies:
+        - PolicyName: LFDataAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['lakeformation:GetDataAccess']
+                Resource: '*'
+        - PolicyName: GluePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['glue:GetTable','glue:GetTables','glue:CreateTable','glue:GetDatabase','glue:GetDatabases','glue:CreateDatabase']
+                Resource:
+                  - !Sub 'arn:aws:glue:*:${AWS::AccountId}:catalog'
+                  - !Sub 'arn:aws:glue:*:${AWS::AccountId}:database/glc-lf-test-db'
+                  - !Sub 'arn:aws:glue:*:${AWS::AccountId}:table/glc-lf-test-db/*'
+        - PolicyName: AthenaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ['athena:GetWorkGroup','athena:StartQueryExecution','athena:GetQueryExecution','athena:GetQueryResults']
+                Resource: !Sub 'arn:aws:athena:*:${AWS::AccountId}:workgroup/lf-test-user-workgroup'
+              - Effect: Allow
+                Action: ['athena:ListWorkGroups']
+                Resource: '*'
+        - PolicyName: AthenaResultLocationPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                Resource: !Sub 'arn:aws:s3:::glc-lf-test-db'
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub 'arn:aws:s3:::glc-lf-test-db/athena-results/lf-test-user/*'
+  AthenaWorkgroup:
+    Type: 'AWS::Athena::WorkGroup'
+    Properties:
+      Name: 'lf-test-user-workgroup'
+      Description: 'Athena Workgroup'
+      State: ENABLED
+      RecursiveDeleteOption: true
+      WorkGroupConfiguration:
+        ResultConfiguration:
+          OutputLocation: !Sub 's3://glc-lf-test-db/athena-results/lf-test-user'
