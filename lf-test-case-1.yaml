@@ -73,20 +73,6 @@ Resources:
                   - s3:DeleteObject
                 Resource: !Sub 'arn:aws:s3:::${AWS::AccountId}-lf-test-user-1/*'
 
-  UserLfPermissions:
-    Type: AWS::LakeFormation::PrincipalPermissions
-    Properties:
-      Principal:
-        DataLakePrincipalIdentifier: !GetAtt 'User.Arn'
-      Resource:
-        Database:
-          CatalogId: !Sub '${AWS::AccountId}'
-          Name: "lf_test_db_1"
-      Permissions:
-        - DESCRIBE
-        - CREATE_TABLE
-      PermissionsWithGrantOption: []
-
   AthenaWorkgroup:
     Type: 'AWS::Athena::WorkGroup'
     Properties:

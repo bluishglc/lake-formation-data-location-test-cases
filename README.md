@@ -11,22 +11,6 @@ Tips: If you re-run this test case, you must revoke data location permissions an
 TEST_CASE_NUM=1
 AWS_ACCOUNT_ID=366020657890
 
-# list all permissions on a data location
-cat << EOF > list-permissions.json
-{
-    "CatalogId": "${AWS_ACCOUNT_ID}",
-    "Resource": {
-        "DataLocation": {
-            "CatalogId": "${AWS_ACCOUNT_ID}",
-            "ResourceArn": "arn:aws:s3:::${AWS_ACCOUNT_ID}-lf-test-db-${TEST_CASE_NUM}"
-        }
-    }
-}
-EOF
-aws lakeformation list-permissions \
-    --no-paginate --no-cli-pager \
-    --cli-input-json file://list-permissions.json
-
 # revoke data location access permissions
 cat << EOF > revoke-permissions.json
 {
@@ -45,6 +29,9 @@ cat << EOF > revoke-permissions.json
 }
 EOF
 aws lakeformation revoke-permissions --cli-input-json file://revoke-permissions.json
+
+# drop datbase
+aws glue delete-database --name "lf_test_db_${TEST_CASE_NUM}"
 
 # deregister data location
 aws lakeformation deregister-resource --resource-arn "arn:aws:s3:::${AWS_ACCOUNT_ID}-lf-test-db-${TEST_CASE_NUM}"
@@ -95,3 +82,20 @@ LOCATION 's3://366020657890-lf-test-db-1/lf-test-table/';
 INSERT INTO lf_test_table VALUES (1), (2), (3);
 ```
 
+```bash
+# list all permissions on a data location
+cat << EOF > list-permissions.json
+{
+    "CatalogId": "${AWS_ACCOUNT_ID}",
+    "Resource": {
+        "DataLocation": {
+            "CatalogId": "${AWS_ACCOUNT_ID}",
+            "ResourceArn": "arn:aws:s3:::${AWS_ACCOUNT_ID}-lf-test-db-${TEST_CASE_NUM}"
+        }
+    }
+}
+EOF
+aws lakeformation list-permissions \
+    --no-paginate --no-cli-pager \
+    --cli-input-json file://list-permissions.json
+```
